@@ -8,11 +8,11 @@ Being able to determine the extent of noise over actuals from the database will 
 The goal of our problem is to validate the information from the FAA UAS Sightings compared to other databases. A credible database that will be evaluated is the NASA Aviation Safety Reporting System (ASRS) which reports confidential reports of aviation traffic. This will help the FAA establish a mechanism to ensure that FAAS management of small UAS safety risks is able to be applied better to the agency’s policies.
 
 # Alogorithm: Fuzzy matching alogorithm
-**Placeholder if we use Fuzzy Matching, this blurp was taken from another project so will need word smithing if used**
+**Placeholder if we use Fuzzy Matching, this blurp was taken from another project so will need word smithing if used**:
 Fuzzy join also known as  similarity join is a binary operation that takes two sets of elements as input and computes a set of similar element-pairs as output . Instead of marking out records as a ‘match’ or ‘non-match’, fuzzy matching identifies the probability that two records actually match based on whether they agree or disagree on the various identifiers. This is different compared to exact joins where records are matched based on the common keys. Fuzzy matching allows us to identify non-exact matches of target items. Generally, fuzzy matching is an algorithm for linking text to similar text.
 
 # Data workflow diagram
-**Could probably use some more fluff** -
+**Could probably use some more fluff**:
 The diagram below represents the data workflow we used from ingesting the raw data through outputing the final product.
 
 ![Workflow Diagram](https://github.com/jrainey4-GMU/GMU-DAEN-690-Team-Noise/blob/0a43aa42314a6dd60c0a38e644e42275d545184e/Workflow%20Diagram.png)
