@@ -14,7 +14,8 @@ Fuzzy join also known as  similarity join is a binary operation that takes two s
 # Data workflow diagram
 The diagram below represents the data workflow we used from ingesting the raw data through outputing the final product. Could probably use some more fluff. 
 
-![STM diagram](https://user-images.githubusercontent.com/61568065/116450855-cbb9a980-a829-11eb-98da-c36dd07dd2f2.PNG)
+![Workflow Diagram](https://github.com/jrainey4-GMU/GMU-DAEN-690-Team-Noise/blob/0a43aa42314a6dd60c0a38e644e42275d545184e/Workflow%20Diagram.png)
+
 
 # Top topics by prevalence in SDR, AID and EON
 The visulizations to understand the topic prevalence in the text corpus of each dataset, and which words contribute to each topic.
