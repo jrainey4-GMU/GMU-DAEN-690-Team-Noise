@@ -18,34 +18,31 @@ The diagram below represents the data workflow we used from ingesting the raw da
 ![Workflow Diagram](https://github.com/jrainey4-GMU/GMU-DAEN-690-Team-Noise/blob/0a43aa42314a6dd60c0a38e644e42275d545184e/Workflow%20Diagram.png)
 
 
-# Top topics by prevalence in SDR, AID and EON
-The visulizations to understand the topic prevalence in the text corpus of each dataset, and which words contribute to each topic.
-![SDR vis](https://user-images.githubusercontent.com/61568065/116951025-d2468780-ac54-11eb-85f0-f94351bb28b8.png)
-![AID vis](https://user-images.githubusercontent.com/61568065/116952322-60703d00-ac58-11eb-9819-a93b71272524.png)
-![EON vis](https://user-images.githubusercontent.com/61568065/116952420-a1685180-ac58-11eb-880c-7c360e54c9ec.png)
-
 # Requirements
-Rerquired Packages:
+Required Packages:
 
-Python
-* Python 2.7+
-* NumPy 1.10+
-* Fuzzy matcher
+ Python
+* Python 2.7?
+* pandas
+* numpy
+* re
+* datetime
+* os
+* load_workbook from openpyxl
+* openpyxl
 
 R 
-* STM
-* TM
-* Stminsights
-* Lubridate
-* wordclod
+* tidyverse
+* dplyr
+* tidytext
+* topicmodels
+* tm
+* gridExtra
+* modelplotr
+* randomForest
+* caret
+* LDA
+* text2vec
 
 # The Process of Execution: Python and R
-* (1) Run the 'Required Libraries' section
-* (2) Upload 'AID-a_file', 'AID-e_file', 'SDR', 'EON' year-wise datasets
-* (3) Run 'AID Data Analysis' section
-* (4) Run 'E-File AID Data Analysis' section
-* (5) Run 'SDR Data Analysis' section
-* (6) Run 'EON Data Analysis' section
-* (7) Run 'STM.csv to be used in R' section and upload the individual csv files of AID, SDR and EON to the working directory of R Code
-* (8) After running the R code, upload the csv files obtained for each dataset AID, SDR and EON and then run 'Merging of Keywords Column from R'
-* (9) Run 'Fuzzy Merging' section
+** John do you want to fill this out? **
