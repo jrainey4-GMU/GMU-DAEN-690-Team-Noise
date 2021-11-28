@@ -1,5 +1,5 @@
 # Federal Aviation Administration (FAA) Data Source Cross-Validation & Natural Language Processing (NLP)
-The project aims to provide a repeatable analytic product that allows the FAA to better understand the Unmanned Aircraft System (UAS) data available. The known issues that need to be addressed to accomplish the projects objective are the data quality issues, inconsistent reporting, and lack of cross-validation data (ASRS database). Before the data can be used for cross validation or NLP, the large "Summary" text blog must be cleaned and distributed into usable variables. In addition, we will join in other lookup tables to provide additional information present in the original data source such as supporting aircraft information. After the data is cleaned and curated, the project will explore cross validation to test whether data records appear true or false and NLP methods (Fuzzy Method Algorithm, RegEx, Word Embedding) to find further insights in the data. 
+The project aims to provide a repeatable analytic product that allows the FAA to better understand the Unmanned Aircraft System (UAS) data available. The known issues that need to be addressed to accomplish the projects’ objective are the data quality issues, inconsistent reporting, and lack of cross-validation data (ASRS database). Before the data can be used for cross validation or NLP, the large "Summary" text blog must be cleaned and distributed into usable variables. In addition, we will join in other lookup tables to provide additional information present in the original data source such as supporting aircraft information. After the data is cleaned and curated, the project will explore cross validation to test whether data records appear true or false and NLP methods (Fuzzy Method Algorithm, RegEx, Word Embedding) to find further insights in the data. 
 
 # Importance of problem 
 Being able to determine the extent of noise over actuals from the database will allow FAA to better understand the restrictions that they must govern to improve risk safety. Validation across different databases will help narrow down the understanding of reports that may be considered noise.
@@ -7,13 +7,13 @@ Being able to determine the extent of noise over actuals from the database will 
 # Problem Statement 
 The goal of our problem is to validate the information from the FAA UAS Sightings compared to other databases. A credible database that will be evaluated is the NASA Aviation Safety Reporting System (ASRS) which reports confidential reports of aviation traffic. This will help the FAA establish a mechanism to ensure that FAAS management of small UAS safety risks is able to be applied better to the agency’s policies.
 
-# Alogorithm: Fuzzy matching alogorithm
-**Placeholder if we use Fuzzy Matching, this blurp was taken from another project so will need word smithing if used**:
+# Algorithm: Fuzzy matching algorithm
+**Placeholder if we use Fuzzy Matching, this blurb was taken from another project so will need word smithing if used**:
 Fuzzy join also known as  similarity join is a binary operation that takes two sets of elements as input and computes a set of similar element-pairs as output . Instead of marking out records as a ‘match’ or ‘non-match’, fuzzy matching identifies the probability that two records actually match based on whether they agree or disagree on the various identifiers. This is different compared to exact joins where records are matched based on the common keys. Fuzzy matching allows us to identify non-exact matches of target items. Generally, fuzzy matching is an algorithm for linking text to similar text.
 
 # Data workflow diagram
 **Could probably use some more fluff**:
-The diagram below represents the data workflow we used from ingesting the raw data through outputing the final product.
+The diagram below represents the data workflow we used from ingesting the raw data through outputting the final product.
 
 ![Workflow Diagram](https://github.com/jrainey4-GMU/GMU-DAEN-690-Team-Noise/blob/0a43aa42314a6dd60c0a38e644e42275d545184e/Workflow%20Diagram.png)
 
@@ -24,7 +24,7 @@ Required Packages:
  Python
 * Python 2.7?
 * pandas
-* numpy
+* NumPy
 * re
 * datetime
 * os
