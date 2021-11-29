@@ -22,7 +22,7 @@ The diagram below represents the data workflow we used from ingesting the raw da
 Required Packages:
 
  Python
-* Python 2.7?
+* Python 3.8
 * pandas
 * numpy
 * re
