@@ -2,45 +2,54 @@ library(tidyverse)
 library(tidytext)
 library(topicmodels)
 library(tm)
-library(gridExtra)
-library(modelplotr)
-library(randomForest)
 library(caret)
-library(LDA)
 
-# tuning parameter
-topic_numbers = 4   # number of topics to generate 
+# tuning parameter   ### INPUT
+topic_numbers = 5  # number of topics to generate 
 
 ################### import ###########################
 # set working directory where the files are
-setwd('C:\\Users\\jrbrz\\Desktop\\690\\assignments')
-#setwd('working directory here')  ### INPUT - set working directory
+setwd('working directory here')  ### INPUT - set working directory
 
 # FAA data that includes verification for true reports
-
-faa.raw <- read.csv('C:\\Users\\jrbrz\\Desktop\\690\\assignments\\DATA_FAA_split_validated.csv') %>%
-#faa.raw <- read.csv('file path to validated date') %>%  ### INPUT - path to validated data set
+raw <- read.csv('file path to validated date') ### INPUT - path to validated data set
+faa.raw <- raw %>%  
     select(X, Summary, hit) 
 
 ################### data cleaning ###########################
-### remove punctation and convert to lowercase and numbers
-faa.raw <- faa.raw %>% 
-    mutate(Summary = gsub('\\\\n|\\.|\\,|\\;','',tolower(substr(Summary,1,nchar(Summary)))),
-           Summary= tm::removeNumbers(Summary))
-
-### divide the reports into separate words
+### divide the reports into separate words and perform some additional text cleaning
 faa <- faa.raw %>%
-    tidytext::unnest_tokens(word, Summary)
-# remove words that are only 1 letter 
-faa <- faa %>% filter(nchar(word) >1)
+    tidytext::unnest_tokens(word, Summary) %>%
+    mutate(word = tm::removePunctuation(word, 
+                                        preserve_intra_word_contractions=FALSE,
+                                        preserve_intra_word_dashes=FALSE,
+                                        ucp=TRUE
+                                        ),
+           word = tm::removePunctuation(word, 
+                                        preserve_intra_word_contractions=FALSE,
+                                        preserve_intra_word_dashes=FALSE,
+                                        ucp=FALSE
+                                        ),
+           word= tm::removeNumbers(word),
+           
+           #cleaning up some words
+           word = gsub("rwy", "runway",word),
+           word = gsub("pd", "police",word),
+           word = gsub("department", "",word),
+           word = gsub("county", "",word),
+           word = gsub("state", "",word),
+           word = gsub("law enforcement", "leo",word)
+           ) %>% 
+    
+    # removing one letter words
+    filter(nchar(word) >1) %>% 
+    
+    # removing reports that are less than 10 words
+    group_by(X) %>% 
+    mutate(n_tokens = n()) %>% 
+    filter(n_tokens>10)
 
-### dropping reports with counts less than 10 words
-# count the reviews that have at least 10 tokens
-faa <- faa %>% group_by(X) %>% 
-    mutate(n_tokens = n(),report_10tokens_plus = case_when(n_tokens > 10 ~1, TRUE ~ 0)) 
-
-# drop the reports with less than 11 words
-faa <- faa %>% filter(n_tokens>10)
+faa$word <- tm::removePunctuation(faa$word) 
 
 # stop word list
 stopWords.list <- c(
@@ -55,54 +64,52 @@ stopWords.list <- c(
     "aircraft", "about", 'airport', 'feet', 'ft', 'miles', 'mi','mile','him',
     'had', 'acft',"o'clock", 'arpt', 'they', 'them', 'her', 'she', 'he', 'said',
     'is', 'if', 'notification', 'have', 'but','stated','aviation','approx',
-    'information','their', 'when', 'called', 'just'
-)
+    'information','their', 'when', 'called', 'just', 'could', 'has', 'than',
+    'described','unknown', 'would','reports','possibly','could', 'like','then',
+    'does', 'this', 'which', 'been','any', 'what', 'there',
+    'south','s','north','n','east','e','west','w','se','sw','ne','nw',
+    'den', 'other','activity','oclock', 'via'
+) 
 
-# stop word dataframe
-stop.words <- data.frame(word=stopWords.list, stringsAsFactors=F)
+# stop word dataframe and adding an column to use as an indicator
+stop.words <- data.frame(word=stopWords.list,
+                         stopword=1, 
+                         stringsAsFactors=F
+                         )
 
-#adding an column to use as an indicator for debugging/exploring later
-stop.words <-  stop.words %>% mutate(stopword=1)
-
-# removing the stop words
+# removing the stop words from the master dataframe
 faa.stopped <- faa %>%
     left_join(y=stop.words, by = 'word', match='all') %>% 
-    filter(is.na(stopword))
-
-# joining the stopword-less summaries back to the master dataset
-#collapsing the rows of words for each record back into a single record
-faa.stopped <- faa.stopped %>%
+    filter(is.na(stopword)) %>%
     group_by(X) %>%
     summarize(Summary_Stopped= paste(word, collapse = ' '))
 
-#joining the collapsed date back to the faa master
-data <- faa.raw %>% 
-    inner_join(faa.stopped, by='X')
+#joining the collapsed date back to the faa master to capture all 
+# the old and newly cleaned data
+data <- faa.stopped %>% 
+    inner_join(faa.raw %>% select(X, hit), by='X')
 
-
-# combining uni-, bi-, tri-grams together
-# this only renames data if single word tokens (unigrams) are used. Uncomment the 2nd line if 
-# bi- and/or tri- grams are used
+# var needed for DTM
 report_tokens <- data %>%
-    #mutate(Summary = paste0(Summary_Stopped, Summary_Bigrams, Summary_Trigrams)) %>%
     select(X, Summary_Stopped) %>%
     unnest_tokens(word, Summary_Stopped) %>%
     group_by(X) %>%
-    ungroup()
+    ungroup() %>%
+    group_by(word) %>% 
+    mutate(token_freq=n()) %>%
+    #removing words that appear less than 6 times
+    filter(token_freq>5)
 
-report_tokens <- report_tokens %>% 
-    group_by(word) %>% mutate(token_freq=n()) %>%  filter(token_freq>=5)
-
+# var needed for DTM
 report_tokens_and_counts <- report_tokens %>% 
     group_by(word) %>% 
     mutate(token_count=n()) %>% 
-    #removing words with less than 5 occurances
+    #removing words with less than 6 occurances
     filter(token_count>5) %>%
     group_by(X) %>% 
     summarise(Summary_Stopped = str_c(word, collapse = " "))
 
 ##################### TRAIN TEST SPLITS  ##############################
-
 ### CREATING TRAIN AND TEST SPLIT ###
 set.seed(217)
 # randomly selecting report IDs that will be in the training set
@@ -115,15 +122,15 @@ data <- data %>%
         train = case_when(X %in% train_rows ~ 1, TRUE ~ 0 )
     )
 
-# assigning the training input variables  - 
+# assigning the training inputs to variables  - 
 train_x <- report_tokens %>% 
     left_join(y=data, by="X", match="all") %>% 
-    filter(train == 1) %>% 
-    left_join(y= report_tokens_and_counts, by= "X", match= "all") #%>% select(X, Summary_Stopped.y)
+    filter(train == 1) 
+    #(y= report_tokens_and_counts, by= "X", match= "all")
 
 ######################  TOPICS  #################################
 # creating document term matrix
-dtm <- report_tokens %>% 
+dtm <- train_x %>% 
     cast_dtm(document = X,term = word,value = token_freq)
 
 #check dimenstions of dtm
@@ -142,17 +149,15 @@ end_time - start_time
 ## OUTPUT THE LDA MODEL
 saveRDS(lda_fit, 'topic_model.RDS')
 
-
 # topics from the LDA model
 topics <- tidy(lda_fit)
+
 
 ################ PREDICTIVE TOPIC MODEL  ##################
 
 # get reviews, prepare the tokens, and add topic betas to tokens 
 # and aggregate to get topic probabilities per review
 report_topicprobs <- data %>% 
-    # combine prepared text including bigrams
-    ####mutate(prepared_text = paste(X,bigrams)) %>% 
     select(X,Summary_Stopped) %>% 
     # unnest tokens
     unnest_tokens(token, Summary_Stopped) %>% 
@@ -170,6 +175,16 @@ report_topicprobs <- data %>%
 # this variable is used later to relabel records as hits - 
 labels <- data %>% select(X, hit)
 
+#adding some dummy variables for categorical variables for possible use in models
+raw$weightSmall <- ifelse((raw$FAA.Weight== "Small" |raw$FAA.Weight== "Small+"), 1, 0)
+raw$weightLarge <- ifelse((raw$FAA.Weight== "Large" | raw$FAA.Weight== "Heavy"| raw$FAA.Weight== "Super"), 1, 0)
+raw$commercial <- ifelse(raw$Air.Carrier=="X", 1, 0)
+raw$Engine.Number <- ifelse(is.na(raw$Engine.Number), 0, raw$Engine.Number)
+raw$engineJet <- ifelse(raw$Engine.Type== 'Jet', 1, 0)
+raw$enginePiston <- ifelse(raw$Engine.Type== 'Piston', 1, 0)
+raw$ClassHeli <- ifelse((raw$Class== 'Gyrocopter' | raw$Class== 'Helicopter' | raw$Class== 'Tiltrotor'), 1, 0)
+raw$ClassLand <- ifelse(raw$Class== 'Landplane', 1, 0)
+
 # prepare data voor training and testing
 set.seed(217)
 # randomly selecting report IDs that will be in the training set
@@ -177,22 +192,94 @@ set.seed(217)
 trainids <- data %>% select(X, train)
 modelinput <- report_topicprobs %>% 
     # add label and train set indicator
-    inner_join(labels,by="X") %>% inner_join(trainids,by="X") %>%
+    inner_join(labels,by="X") %>% 
+    inner_join(trainids,by="X") %>%
+    inner_join(raw, by= "X") %>%
     # set label to factor
-    mutate(hit=as.factor(hit))
+    
+    mutate(hit=hit.x)
 
 train <- modelinput %>% filter(train==1) %>% select(-train)
 test <- modelinput %>% filter(train!=1) %>% select(-train)
 
 # generating the forumla for the model input. It is a string in the form required
-feat_topics <- c('prob_topic1','prob_topic2','prob_topic3','prob_topic4')
+
+
+#create list of topic probs that can adjust to 
+#the tuning param and will be used in the predictive 
+#model formula
+tops <- c()
+for (i in seq(1:topic_numbers)){
+    temp <- paste0('prob_topic', i, sep='')
+    tops <- c(tops, temp)
+}
+# the dummy variables created and that wish to be used
+# need to be added here, after tops
+feat_topics <- c(tops,
+                 'commercial', 'ClassLand') # <<<<<
 formula <- as.formula(paste('hit', paste(feat_topics, collapse=" + "), sep=" ~ "))
 
-# prediction model 
-rf_fit <- randomForest(formula, data=train,ntree=500,mtry=3,min_n=50)
-predicted <- predict(rf_fit,newdata=test, type="response")
 
-saveRDS(rf_fit, 'randomForest_model.RDS')
+# logistic regression
+set.seed(217)
+
+#fitting the logistic regression to the training data set
+glm_fit <- glm(formula, data= train, family = binomial)
+
+#convert logit to probability
+logProb <- function(logit){
+    odds <- exp(logit)
+    prob <- odds / (1 + odds)
+    return(prob)
+}
+logProb(coef(glm_fit))
+
+# getting the predictions made on the training set
+# these are probabilties
+glm_predict <- predict(glm_fit, type="response")
+
+#this is taking the training prediction probability and assigning 
+#a threshold where the prediction would be true or false
+#currently set at predictions <= 0.01 = noise
+train_glm = train %>%
+    mutate(predicted.value=as.factor(ifelse(glm_predict<=0.01, 0, 1)))
+
+# finding optimal cutoff probability to classify an actual
+# optimizing to max 1 and min 0 class
+opti <- optimalCutoff(actuals= as.numeric(paste(train_glm$hit)), 
+                      predictedScores= as.numeric(paste(train_glm$predicted.value)),#test_glm_predict,
+                      #optimiseFor= "Zeros",
+                      returnDiagnostics= TRUE
+)
+optiCutoff <- opti$optimalCutoff
+optiCutoff
+
+saveRDS(glm_fit, 'predictive_model.RDS')
+
+##########################################################
+# random forest
+##########################################
+
+# rf with caret needs outcome variables not equal to 0 and 1
+# converting to n and a
+train <- modelinput %>% filter(train==1) %>% select(-train)
+train$hit <- gsub(0,"n",train$hit)
+train$hit <- gsub(1,"a",train$hit)
+test <- modelinput %>% filter(train!=1) %>% select(-train)
+test$hit <- gsub(0,"n",test$hit)
+test$hit <- gsub(1,"a",test$hit)
+
+
+tuningGrid = expand.grid(mtry=c(4,5,6,7))
+rf_fit <- train(formula,
+                data=train,
+                method='rf',
+                importance= TRUE,
+                tuneGrid= tuningGrid,
+                #trControl=trainControl(classProbs = TRUE)
+)
+
+
 
 
 

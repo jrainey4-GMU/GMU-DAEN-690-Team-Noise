@@ -10,25 +10,53 @@ library(caret)
 ################### import ###########################
 
 # set working directory where the files are
-setwd('C:\\Users\\jrbrz\\Desktop\\690\\assignments')
-#setwd('working directory here')  ### INPUT - set working directory
+setwd('working directory here')  ### INPUT - set working directory
 
-new_reports <- read.csv('C:\\Users\\jrbrz\\Desktop\\690\\assignments\\DATA_FAA_split_validated.csv') %>%
-    #faa.raw <- read.csv('file path to validated date') %>%  ### INPUT - path to validated data set
-    select(X, Summary)
+new_reports <- read.csv('DATA_FAA_split_validated.csv')
+faa.raw  <- new_reports %>%  select(X, Summary)
 topic_model <- readRDS('topic_model.RDS')
-predictive_model <- readRDS('randomForest_model.RDS')
+predictive_model <- readRDS('predictive_model.RDS')
+
+####
+#adding dummy variables that were used in the training  
+new_reports$commercial <- ifelse(new_reports$Air.Carrier=="X", 1, 0)
+new_reports$ClassLand <- ifelse(new_reports$Class== 'Landplane', 1, 0)
 
 
 ################### data cleaning for new reports ###########################
-### remove punctation and convert to lowercase and numbers
-faa.raw <- new_reports %>% 
-    mutate(Summary = gsub('\\\\n|\\.|\\,|\\;','',tolower(substr(Summary,1,nchar(Summary)))),
-           Summary= tm::removeNumbers(Summary))
-
-### divide the reports into separate words
+### divide the reports into separate words and perform some additional text cleaning
 faa <- faa.raw %>%
-    tidytext::unnest_tokens(word, Summary)
+    tidytext::unnest_tokens(word, Summary) %>%
+    mutate(word = tm::removePunctuation(word, 
+                                        preserve_intra_word_contractions=FALSE,
+                                        preserve_intra_word_dashes=FALSE,
+                                        ucp=TRUE
+    ),
+    word = tm::removePunctuation(word, 
+                                 preserve_intra_word_contractions=FALSE,
+                                 preserve_intra_word_dashes=FALSE,
+                                 ucp=FALSE
+    ),
+    word= tm::removeNumbers(word),
+    
+    #cleaning up some words
+    word = gsub("rwy", "runway",word),
+    word = gsub("pd", "police",word),
+    word = gsub("department", "",word),
+    word = gsub("county", "",word),
+    word = gsub("state", "",word),
+    word = gsub("law enforcement", "leo",word)
+    ) %>% 
+    
+    # removing one letter words
+    filter(nchar(word) >1) %>% 
+    
+    # removing reports that are less than 10 words
+    group_by(X) %>% 
+    mutate(n_tokens = n()) %>% 
+    filter(n_tokens>10)
+
+faa$word <- tm::removePunctuation(faa$word) 
 
 # stop word list
 stopWords.list <- c(
@@ -43,39 +71,40 @@ stopWords.list <- c(
     "aircraft", "about", 'airport', 'feet', 'ft', 'miles', 'mi','mile','him',
     'had', 'acft',"o'clock", 'arpt', 'they', 'them', 'her', 'she', 'he', 'said',
     'is', 'if', 'notification', 'have', 'but','stated','aviation','approx',
-    'information','their', 'when', 'called', 'just'
+    'information','their', 'when', 'called', 'just', 'could', 'has', 'than',
+    'described','unknown', 'would','reports','possibly','could', 'like','then',
+    'does', 'this', 'which', 'been','any', 'what', 'there',
+    'south','s','north','n','east','e','west','w','se','sw','ne','nw',
+    'den', 'other','activity','oclock', 'via'
+) 
+
+# stop word dataframe and adding an column to use as an indicator
+stop.words <- data.frame(word=stopWords.list,
+                         stopword=1, 
+                         stringsAsFactors=F
 )
 
-# stop word dataframe
-stop.words <- data.frame(word=stopWords.list, stringsAsFactors=F)
-
-#adding an column to use as an indicator for debugging/exploring later
-stop.words <-  stop.words %>% mutate(stopword=1)
-
-# removing the stop words
+# removing the stop words from the master dataframe
 faa.stopped <- faa %>%
-    left_join(y=stop.words, by = 'word', match='all')
-
-# joining the stopword-less summaries back to the master dataset
-#collapsing the rows of words for each record back into a single record
-faa.stopped <- faa.stopped %>%
+    left_join(y=stop.words, by = 'word', match='all') %>% 
+    filter(is.na(stopword)) %>%
     group_by(X) %>%
     summarize(Summary_Stopped= paste(word, collapse = ' '))
 
-#joining the collapsed date back to the faa master
-data <- faa.raw %>% 
-    inner_join(faa.stopped, by='X')
+#joining the collapsed date back to the faa master to capture all 
+# the old and newly cleaned data
+data <- faa.stopped %>% 
+    inner_join(new_reports, by='X')
+
 
 
 ################ PREDICTIVE TOPIC MODEL  ##################
 # topics from the LDA model
 topics <- tidy(topic_model)
 
-# get reviews, prepare the tokens, and add topic betas to tokens 
+# get reports, prepare the tokens, and add topic betas to tokens 
 # and aggregate to get topic probabilities per review
 report_topicprobs <- data %>% 
-    # combine prepared text including bigrams
-    ####mutate(prepared_text = paste(X,bigrams)) %>% 
     select(X,Summary_Stopped) %>% 
     # unnest tokens
     unnest_tokens(token, Summary_Stopped) %>% 
@@ -90,12 +119,28 @@ report_topicprobs <- data %>%
     pivot_wider(names_from = topic, values_from = prob_topic,names_prefix='prob_topic') %>% 
     select(-prob_topicNA) %>% filter(!is.na(prob_topic1))
 
-modelinput <- report_topicprobs
+#combining predictions from topic modeling with original UAS report data
+modelinput <- report_topicprobs %>%
+    left_join(y= new_reports %>% select(X, commercial, ClassLand),
+              by= 'X')
+
+#### predict on the new reports ####
 predicted <- predict(predictive_model,newdata=modelinput, type="response")
 
-
+#adding the predictions to the data
 modelinput$prediction <- predicted
-new_reports <- new_reports  %>%
-    left_join(y=modelinput, by="X")
+#removing dummy variables and appending prediction to original report data
+new_reports <- new_reports %>%
+    left_join(modelinput %>% select(X, prediction), 
+              by= 'X'
+              )
+    select(-c(commercial, ClassLand))
+    
+#convert the prediction value to actual or noise
+#requires threshold used to train 0.01
+new_reports$prediction <- if_else(new_reports$prediction >0.01, 
+                                  true=1, 
+                                  false=0,
+                                  missing=0)
 
-write.csv(new_reports, "noise_predictions.csv")
+write.csv(new_reports, "predictions.csv")
