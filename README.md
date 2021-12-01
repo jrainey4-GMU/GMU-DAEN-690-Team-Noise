@@ -36,7 +36,35 @@ R
 * modelplotr
 * randomForest
 * caret
-* LDA
 * text2vec
+* InformationValue
+* ROCR
+
+# Execution Options
+## Cleaning UAS reports for data analysis and reporting
+* use historical_data_merge_FAA.py to merge FAA data reports if necessary
+* input data to FAA_data processing.py; output will be a cleaned dataset that can be used for analysis and reporting
+
+## Prediction Execution Processes
+### Starting with validated data and using existing Model to predict
+* use historical_data_merge_FAA.py to merge FAA data reports if necessary
+* input data to FAA_data processing.py for cleaned and formated data set
+* use cleaned data set with topic_model.RDS and predictive_model.RDS to run topic_modeling_prediction.R; this will out put predictions on your new UAS reports
+
+### Starting with validated data and no trained model to predict
+* use historical_data_merge_FAA.py to merge FAA data reports if necessary
+* input data to FAA_data processing.py
+* use output from FAA_data processing.py to train a predictive topic model in topic_modeling_training.R
+* using topic_model.RDS and predictive_model.RDS from topic_modeling_training.R and the validated dataset, run topic_modeling_prediction.R; this will out put predictions on your new UAS reports
+
+### Starting with no data and no trained models to predict
+* download desired FAA files from https://www.faa.gov/uas/resources/public_records/uas_sightings_report/ and matching ASRS data from https://akama.arc.nasa.gov/ASRSDBOnline/QueryWizard_Filter.aspx
+* save both sets to their own folders
+* run their historical merge scripts historical_data_merge_FAA.py and historical_data_merge_ASRS.py
+* use output from historical_data_merge_FAA.py to run FAA_data processing.py
+* use output from FAA_data processing.py and historical_data_merge_ASRS.py to run Cross Val_Similarity.R
+* using the validated output from Cross Val_Similarity.R, train a predictive topic model in topic_modeling_training.R
+* using topic_model.RDS and predictive_model.RDS from topic_modeling_training.R and the validated dataset from Cross Val_Similarity.R, run topic_modeling_prediction.R; this will out put predictions on your new UAS reports
+
 
 
