@@ -8,7 +8,6 @@ Being able to determine the extent of noise over actuals from the database will 
 The goal of our problem is to validate the information from the FAA UAS Sightings compared to other databases. A credible database that will be evaluated is the NASA Aviation Safety Reporting System (ASRS) which reports confidential reports of aviation traffic. This will help the FAA establish a mechanism to ensure that FAAS management of small UAS safety risks is able to be applied better to the agency’s policies.
 
 # Data workflow diagram
-**Could probably use some more fluff**:
 The diagram below represents the data workflow we used from ingesting the raw data through outputting the final product.
 
 ![Workflow Diagram](https://github.com/jrainey4-GMU/GMU-DAEN-690-Team-Noise/blob/0a43aa42314a6dd60c0a38e644e42275d545184e/Workflow%20Diagram.png)
